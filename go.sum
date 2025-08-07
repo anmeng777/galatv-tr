@@ -1,0 +1,4 @@
+github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
+github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
+github.com/gateio/gateapi-go/v6 v6.104.3 h1:JQ2+s1pG4bL+JeLQyGy9c7YLr7hxRI8g7vkAuQYl75k=
+github.com/gateio/gateapi-go/v6 v6.104.3/go.mod h1:racCcjrdyOUbRDO5eCUGUiyDPrF/ZmwBj/bupPZTVLY=

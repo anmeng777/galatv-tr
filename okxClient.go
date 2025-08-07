@@ -1,0 +1,588 @@
+package galatvtr
+
+import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"time"
+)
+
+const (
+	// OKXBaseURL OKX API 基础 URL
+	OkxBaseUrl = "https://www.okx.com"
+)
+
+// OKXClient OKX API 客户端
+type OKXClient struct {
+	Client *http.Client
+}
+
+// NewOKXClient 创建一个新的 OKX API 客户端
+func NewOKXClient() *OKXClient {
+	return &OKXClient{
+		Client: &http.Client{
+			Timeout: time.Second * 10,
+		},
+	}
+}
+
+// 发送请求到 OKX API
+func (c *OKXClient) SendRequest(apiKey, secretKey, passphrase string, isTestnet int, method, endpoint string, params interface{}) ([]byte, error) {
+	var reqBody []byte
+	var err error
+
+	url := OkxBaseUrl + endpoint
+
+	if params != nil && (method == "POST" || method == "PUT") {
+		reqBody, err = json.Marshal(params)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	// preHash := timestamp + method + endpoint
+	signature := c.sign(secretKey, timestamp, method, endpoint, reqBody)
+
+	req.Header.Set("OK-ACCESS-KEY", apiKey)
+	req.Header.Set("OK-ACCESS-SIGN", signature)
+	req.Header.Set("OK-ACCESS-TIMESTAMP", timestamp)
+	req.Header.Set("OK-ACCESS-PASSPHRASE", passphrase)
+	req.Header.Set("Content-Type", "application/json")
+
+	if isTestnet == 1 {
+		req.Header.Set("x-simulated-trading", "1")
+	}
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
+	}
+
+	fmt.Println("API 响应: ", string(body))
+
+	return body, nil
+}
+
+func (c *OKXClient) SendRequestNoAuth(method, endpoint string, params interface{}) ([]byte, error) {
+	var reqBody []byte
+	var err error
+
+	url := OkxBaseUrl + endpoint
+
+	if params != nil && (method == "POST" || method == "PUT") {
+		reqBody, err = json.Marshal(params)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
+	}
+
+	fmt.Println("API 响应: ", string(body))
+
+	return body, nil
+}
+
+// 生成 OKX API 请求所需的签名
+func (c *OKXClient) sign(secretKey, timestamp, method, requestPath string, body []byte) string {
+	message := timestamp + method + requestPath
+	if method == "POST" || method == "PUT" {
+		message += string(body)
+	}
+
+	mac := hmac.New(sha256.New, []byte(secretKey))
+	mac.Write([]byte(message))
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// PlaceOrder 下单
+func (c *OKXClient) PlaceOrder(apiKey, secretKey, passphrase string, isTestnet int, order OrderRequestOkx) (*OrderResponse, error) {
+	endpoint := "/api/v5/trade/order"
+
+	// 打印order
+	fmt.Printf("下单参数: %+v\n", order)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, order)
+	if err != nil {
+		return nil, err
+	}
+
+	var result OrderResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("下单失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+func (c *OKXClient) PlaceOrderHeyueOkx(apiKey, secretKey, passphrase string, isTestnet int, order OrderRequestOkx) (*OrderResponse, error) {
+	endpoint := "/api/v5/trade/order"
+
+	// 打印order
+	fmt.Printf("下单参数: %+v\n", order)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, order)
+	if err != nil {
+		return nil, err
+	}
+
+	var result OrderResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("下单失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetTicker 获取单个产品行情信息
+func (c *OKXClient) GetTickerLast(apiKey, secretKey, passphrase string, isTestnet int, instId string) (string, error) {
+	endpoint := "/api/v5/market/ticker?instId=" + instId
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	var result TickerResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return "", err
+	}
+	if result.Code != "0" {
+		return "", fmt.Errorf("获取行情信息失败: %s", result.Msg)
+	}
+	if len(result.Data) == 0 {
+		return "", fmt.Errorf("未获取到行情数据")
+	}
+	return result.Data[0].Last, nil
+}
+
+// 查询指定币种余额
+func (c *OKXClient) GetAccountBalance(apiKey, secretKey, passphrase string, isTestnet int, ccy string) (*BalanceResponse, error) {
+	endpoint := "/api/v5/account/balance?ccy=" + ccy
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result BalanceResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return nil, fmt.Errorf("查询余额失败: %s", result.Msg)
+	}
+
+	if len(result.Data) == 0 {
+		return nil, fmt.Errorf("未获取到余额数据")
+	}
+
+	return &result, nil
+}
+
+// GetLeverageInfo 查询杠杆倍率信息
+func (c *OKXClient) GetLeverageInfo(apiKey, secretKey, passphrase string, isTestnet int, instId, mgnMode string) (*LeverageInfoResponse, error) {
+	endpoint := fmt.Sprintf("/api/v5/account/leverage-info?instId=%s&mgnMode=%s", instId, mgnMode)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result LeverageInfoResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("查询杠杆倍率失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// SetLeverage 设置杠杆倍率
+func (c *OKXClient) SetLeverage(apiKey, secretKey, passphrase string, isTestnet int, request SetLeverageRequest) (*SetLeverageResponse, error) {
+	endpoint := "/api/v5/account/set-leverage"
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, request)
+	if err != nil {
+		return nil, err
+	}
+
+	var result SetLeverageResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("设置杠杆倍率失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetOrderInfo 查询订单信息
+// func (c *OKXClient) GetOrderInfo(apiKey, secretKey, passphrase string, isTestnet int, instId, ordId, clOrdId string) (*galastruct.OrderInfoResponse, error) {
+// 	endpoint := "/api/v5/trade/order"
+
+// 	// 构建查询参数
+// 	if instId == "" {
+// 		return nil, fmt.Errorf("instId 参数不能为空")
+// 	}
+
+// 	if ordId != "" {
+// 		endpoint += "?instId=" + instId + "&ordId=" + ordId
+// 	} else if clOrdId != "" {
+// 		endpoint += "?instId=" + instId + "&clOrdId=" + clOrdId
+// 	} else {
+// 		return nil, fmt.Errorf("ordId 和 clOrdId 至少需要提供一个")
+// 	}
+
+// 	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	var result galastruct.OrderInfoResponse
+// 	if err := json.Unmarshal(resp, &result); err != nil {
+// 		return nil, err
+// 	}
+
+// 	if result.Code != "0" {
+// 		return &result, fmt.Errorf("查询订单信息失败: %s", result.Msg)
+// 	}
+
+// 	return &result, nil
+// }
+
+// PlaceAlgoOrder 策略委托下单
+func (c *OKXClient) PlaceAlgoOrder(apiKey, secretKey, passphrase string, isTestnet int, order AlgoOrderRequest) (*AlgoOrderResponse, error) {
+	endpoint := "/api/v5/trade/order-algo"
+
+	// 打印策略委托下单参数
+	fmt.Printf("策略委托下单参数: %+v\n", order)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, order)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AlgoOrderResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("策略委托下单失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetPositions 获取持仓信息
+func (c *OKXClient) GetPositions(apiKey, secretKey, passphrase string, isTestnet int, instType, instId string) (*PositionsResponse, error) {
+	endpoint := "/api/v5/account/positions"
+
+	// 构建查询参数
+	if instType != "" {
+		endpoint += "?instType=" + instType
+		if instId != "" {
+			endpoint += "&instId=" + instId
+		}
+	} else if instId != "" {
+		endpoint += "?instId=" + instId
+	}
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result PositionsResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("获取持仓信息失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetAlgoOrderInfo 查询策略委托单信息
+// func (c *OKXClient) GetAlgoOrderInfo(apiKey, secretKey, passphrase string, isTestnet int, algoId, algoClOrdId string) (*galastruct.AlgoOrderInfoResponse, error) {
+// 	endpoint := "/api/v5/trade/order-algo"
+
+// 	// 构建查询参数
+// 	if algoId != "" {
+// 		endpoint += "?algoId=" + algoId
+// 	} else if algoClOrdId != "" {
+// 		endpoint += "?algoClOrdId=" + algoClOrdId
+// 	} else {
+// 		return nil, fmt.Errorf("algoId 和 algoClOrdId 至少需要提供一个")
+// 	}
+
+// 	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	var result galastruct.AlgoOrderInfoResponse
+// 	if err := json.Unmarshal(resp, &result); err != nil {
+// 		return nil, err
+// 	}
+
+// 	if result.Code != "0" {
+// 		if result.Msg == "Order does not exist" {
+// 			return nil, nil
+// 		}
+// 		return &result, fmt.Errorf("查询策略委托单信息失败: %s", result.Msg)
+// 	}
+
+// 	return &result, nil
+// }
+
+// GetAlgoOrdersPending 获取未完成策略委托单列表
+func (c *OKXClient) GetAlgoOrdersPending(apiKey, secretKey, passphrase string, isTestnet int, ordType, instType, instId string) (*AlgoOrdersPendingResponse, error) {
+	endpoint := "/api/v5/trade/orders-algo-pending"
+
+	// 构建查询参数
+	params := "?ordType=" + ordType
+	if instType != "" {
+		params += "&instType=" + instType
+	}
+	if instId != "" {
+		params += "&instId=" + instId
+	}
+	endpoint += params
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AlgoOrdersPendingResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("获取未完成策略委托单列表失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// CancelAlgoOrders 撤销策略委托订单
+func (c *OKXClient) CancelAlgoOrders(apiKey, secretKey, passphrase string, isTestnet int, requests []CancelAlgoOrderRequest) (*CancelAlgoOrdersResponse, error) {
+	endpoint := "/api/v5/trade/cancel-algos"
+
+	// 打印撤销策略委托订单参数
+	fmt.Printf("撤销策略委托订单参数: %+v\n", requests)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, requests)
+	if err != nil {
+		return nil, err
+	}
+
+	var result CancelAlgoOrdersResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("撤销策略委托订单失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetInstruments 获取交易产品基础信息
+func (c *OKXClient) GetInstruments(instType, instId string) (float64, error) {
+	endpoint := "/api/v5/public/instruments"
+
+	// 构建查询参数
+	if instType == "" {
+		return 0, fmt.Errorf("instType 参数不能为空")
+	}
+
+	params := "?instType=" + instType
+	if instId != "" {
+		params += "&instId=" + instId
+	}
+	endpoint += params
+
+	// 使用无认证请求，因为这是公共接口
+	resp, err := c.SendRequestNoAuth("GET", endpoint, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	var result InstrumentsResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return 0, err
+	}
+
+	if result.Code != "0" {
+		return 0, fmt.Errorf("获取交易产品基础信息失败: %s", result.Msg)
+	}
+	if len(result.Data) > 0 {
+		if valueFloat, err := strconv.ParseFloat(result.Data[0].CtVal, 64); err == nil {
+			return valueFloat, nil
+		} else {
+			return 0, fmt.Errorf("解析value失败: %v", err)
+		}
+	} else {
+		return 0, fmt.Errorf("获取交易产品基础信息失败: %s", result.Msg)
+	}
+}
+
+// GetSavingsBalance 获取余币宝余额
+func (c *OKXClient) GetSavingsBalance(apiKey, secretKey, passphrase string, isTestnet int, ccy string) (*SavingsBalanceResponse, error) {
+	endpoint := "/api/v5/finance/savings/balance"
+
+	// 构建查询参数
+	if ccy != "" {
+		endpoint += "?ccy=" + ccy
+	}
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result SavingsBalanceResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("获取余币宝余额失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// SavingsPurchaseRedempt 余币宝申购/赎回
+func (c *OKXClient) SavingsPurchaseRedempt(apiKey, secretKey, passphrase string, isTestnet int, request SavingsPurchaseRedemptRequest) (*SavingsPurchaseRedemptResponse, error) {
+	endpoint := "/api/v5/finance/savings/purchase-redempt"
+
+	// 打印请求参数
+	fmt.Printf("余币宝申购/赎回参数: %+v\n", request)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, request)
+	if err != nil {
+		return nil, err
+	}
+
+	var result SavingsPurchaseRedemptResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("余币宝申购/赎回失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// GetAssetBalance 获取资金账户余额
+func (c *OKXClient) GetAssetBalance(apiKey, secretKey, passphrase string, isTestnet int, ccy string) (*AssetBalanceResponse, error) {
+	endpoint := "/api/v5/asset/balances"
+
+	// 构建查询参数
+	if ccy != "" {
+		endpoint += "?ccy=" + ccy
+	}
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AssetBalanceResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("获取资金账户余额失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}
+
+// AssetTransfer 资金划转
+func (c *OKXClient) AssetTransfer(apiKey, secretKey, passphrase string, isTestnet int, request AssetTransferRequest) (*AssetTransferResponse, error) {
+	endpoint := "/api/v5/asset/transfer"
+
+	// 打印请求参数
+	fmt.Printf("资金划转参数: %+v\n", request)
+
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "POST", endpoint, request)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AssetTransferResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Code != "0" {
+		return &result, fmt.Errorf("资金划转失败: %s", result.Msg)
+	}
+
+	return &result, nil
+}

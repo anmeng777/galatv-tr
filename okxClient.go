@@ -15,20 +15,25 @@ import (
 
 const (
 	// OKXBaseURL OKX API 基础 URL
-	OkxBaseUrl = "https://www.okx.com"
+	okxBaseUrl = "https://www.okx.com"
 )
 
 // OKXClient OKX API 客户端
 type OKXClient struct {
-	Client *http.Client
+	Client  *http.Client
+	BaseUrl string
 }
 
 // NewOKXClient 创建一个新的 OKX API 客户端
-func NewOKXClient() *OKXClient {
+func NewOKXClient(baseUrl string) *OKXClient {
+	if baseUrl == "" {
+		baseUrl = okxBaseUrl
+	}
 	return &OKXClient{
 		Client: &http.Client{
 			Timeout: time.Second * 10,
 		},
+		BaseUrl: baseUrl,
 	}
 }
 
@@ -37,7 +42,7 @@ func (c *OKXClient) SendRequest(apiKey, secretKey, passphrase string, isTestnet 
 	var reqBody []byte
 	var err error
 
-	url := OkxBaseUrl + endpoint
+	url := c.BaseUrl + endpoint
 
 	if params != nil && (method == "POST" || method == "PUT") {
 		reqBody, err = json.Marshal(params)
@@ -85,44 +90,44 @@ func (c *OKXClient) SendRequest(apiKey, secretKey, passphrase string, isTestnet 
 	return body, nil
 }
 
-func (c *OKXClient) SendRequestNoAuth(method, endpoint string, params interface{}) ([]byte, error) {
+func (c *OKXClient) SendRequestNoAuth(method, endpoint string, params interface{}) ([]byte, int, error) {
 	var reqBody []byte
 	var err error
 
-	url := OkxBaseUrl + endpoint
+	url := c.BaseUrl + endpoint
 
 	if params != nil && (method == "POST" || method == "PUT") {
 		reqBody, err = json.Marshal(params)
 		if err != nil {
-			return nil, err
+			return nil, -1, err
 		}
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
+		return nil, resp.StatusCode, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
 	}
 
 	fmt.Println("API 响应: ", string(body))
 
-	return body, nil
+	return body, resp.StatusCode, nil
 }
 
 // 生成 OKX API 请求所需的签名
@@ -463,8 +468,8 @@ func (c *OKXClient) GetInstruments(instType, instId string) (float64, error) {
 	endpoint += params
 
 	// 使用无认证请求，因为这是公共接口
-	resp, err := c.SendRequestNoAuth("GET", endpoint, nil)
-	if err != nil {
+	resp, statusCode, err := c.SendRequestNoAuth("GET", endpoint, nil)
+	if err != nil || statusCode != http.StatusOK {
 		return 0, err
 	}
 
@@ -585,4 +590,76 @@ func (c *OKXClient) AssetTransfer(apiKey, secretKey, passphrase string, isTestne
 	}
 
 	return &result, nil
+}
+
+func (c *OKXClient) OkGetKlineFecher(symbol, interval string, startTime, endTime *int64) ([][]string, error) {
+	if interval == "6H" || interval == "12H" || interval == "1D" || interval == "2D" || interval == "3D" || interval == "1W" || interval == "1M" || interval == "3M" {
+		interval = interval + "utc"
+	}
+
+	// 检查指针是否为nil，避免解引用nil指针
+	startTimeStr := "nil"
+	endTimeStr := "nil"
+	if startTime != nil {
+		startTimeStr = strconv.FormatInt(*startTime, 10)
+	}
+	if endTime != nil {
+		endTimeStr = strconv.FormatInt(*endTime, 10)
+	}
+	fmt.Printf("------准备获取【%s】的K线数据%s~%s\n", interval, startTimeStr, endTimeStr)
+
+	endpoint := "/api/v5/market/history-candles"
+
+	params := "?instId=" + symbol + "&bar=" + interval
+	if startTime != nil {
+		params += "&before=" + strconv.FormatInt(*startTime, 10)
+	}
+	if endTime != nil {
+		params += "&after=" + strconv.FormatInt(*endTime, 10)
+	}
+	params += "&limit=100"
+	endpoint += params
+
+	var body []byte
+	for {
+		var statusCode int
+		var err2 error
+		// 发送请求
+		body, statusCode, err2 = c.SendRequestNoAuth("GET", endpoint, nil)
+		if err2 != nil {
+			fmt.Printf("发送请求错误: %v\n", err2)
+			// return nil, -1, err2
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		if statusCode == 429 {
+			fmt.Printf("遇到接口限流(429)，等待后重试...\n")
+			time.Sleep(1 * time.Second)
+			continue
+		} else {
+			if statusCode != 200 {
+				fmt.Printf("!!!!!!请求失败，间隔【%s】状态码: %d\n", interval, statusCode)
+				// return nil, resp.StatusCode, err2
+				time.Sleep(1 * time.Second)
+				continue
+			} else {
+				break
+			}
+		}
+	}
+
+	var response HttpKlineResponse
+	err := json.Unmarshal(body, &response)
+	if err != nil {
+		fmt.Printf("解析JSON错误: %v\n", err)
+		return nil, err
+	}
+
+	if response.Code != "0" {
+		fmt.Printf("API错误: %s\n", response.Msg)
+		return nil, err
+	}
+
+	return response.Data, nil
 }

@@ -416,3 +416,10 @@ type AssetTransferResponse struct {
 	Msg  string              `json:"msg"`
 	Data []AssetTransferData `json:"data"`
 }
+
+// KlineResponse 是OKX API响应的结构
+type HttpKlineResponse struct {
+	Code string     `json:"code"`
+	Msg  string     `json:"msg"`
+	Data [][]string `json:"data"`
+}

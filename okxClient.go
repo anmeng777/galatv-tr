@@ -276,38 +276,38 @@ func (c *OKXClient) SetLeverage(apiKey, secretKey, passphrase string, isTestnet 
 }
 
 // GetOrderInfo 查询订单信息
-// func (c *OKXClient) GetOrderInfo(apiKey, secretKey, passphrase string, isTestnet int, instId, ordId, clOrdId string) (*galastruct.OrderInfoResponse, error) {
-// 	endpoint := "/api/v5/trade/order"
+func (c *OKXClient) GetOrderInfo(apiKey, secretKey, passphrase string, isTestnet int, instId, ordId, clOrdId string) (*OrderInfoResponse, error) {
+	endpoint := "/api/v5/trade/order"
 
-// 	// 构建查询参数
-// 	if instId == "" {
-// 		return nil, fmt.Errorf("instId 参数不能为空")
-// 	}
+	// 构建查询参数
+	if instId == "" {
+		return nil, fmt.Errorf("instId 参数不能为空")
+	}
 
-// 	if ordId != "" {
-// 		endpoint += "?instId=" + instId + "&ordId=" + ordId
-// 	} else if clOrdId != "" {
-// 		endpoint += "?instId=" + instId + "&clOrdId=" + clOrdId
-// 	} else {
-// 		return nil, fmt.Errorf("ordId 和 clOrdId 至少需要提供一个")
-// 	}
+	if ordId != "" {
+		endpoint += "?instId=" + instId + "&ordId=" + ordId
+	} else if clOrdId != "" {
+		endpoint += "?instId=" + instId + "&clOrdId=" + clOrdId
+	} else {
+		return nil, fmt.Errorf("ordId 和 clOrdId 至少需要提供一个")
+	}
 
-// 	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	resp, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var result galastruct.OrderInfoResponse
-// 	if err := json.Unmarshal(resp, &result); err != nil {
-// 		return nil, err
-// 	}
+	var result OrderInfoResponse
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return nil, err
+	}
 
-// 	if result.Code != "0" {
-// 		return &result, fmt.Errorf("查询订单信息失败: %s", result.Msg)
-// 	}
+	if result.Code != "0" {
+		return &result, fmt.Errorf("查询订单信息失败: %s", result.Msg)
+	}
 
-// 	return &result, nil
-// }
+	return &result, nil
+}
 
 // PlaceAlgoOrder 策略委托下单
 func (c *OKXClient) PlaceAlgoOrder(apiKey, secretKey, passphrase string, isTestnet int, order AlgoOrderRequest) (*AlgoOrderResponse, error) {

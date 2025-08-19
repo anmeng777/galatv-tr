@@ -423,3 +423,46 @@ type HttpKlineResponse struct {
 	Msg  string     `json:"msg"`
 	Data [][]string `json:"data"`
 }
+
+// 订单查询响应
+type OrderInfoResponse struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+	Data []struct {
+		InstId       string `json:"instId"`
+		OrdId        string `json:"ordId"`
+		ClOrdId      string `json:"clOrdId"`
+		Tag          string `json:"tag"`
+		Px           string `json:"px"`
+		Sz           string `json:"sz"`
+		OrdType      string `json:"ordType"`
+		Side         string `json:"side"`
+		PosSide      string `json:"posSide"`
+		TdMode       string `json:"tdMode"`
+		AccFillSz    string `json:"accFillSz"`
+		FillPx       string `json:"fillPx"`
+		TradeId      string `json:"tradeId"`
+		FillSz       string `json:"fillSz"`
+		FillTime     string `json:"fillTime"`
+		State        string `json:"state"`
+		AvgPx        string `json:"avgPx"`
+		Lever        string `json:"lever"`
+		TpTriggerPx  string `json:"tpTriggerPx"`
+		TpOrdPx      string `json:"tpOrdPx"`
+		SlTriggerPx  string `json:"slTriggerPx"`
+		SlOrdPx      string `json:"slOrdPx"`
+		FeeCcy       string `json:"feeCcy"`
+		Fee          string `json:"fee"`
+		RebateCcy    string `json:"rebateCcy"`
+		Rebate       string `json:"rebate"`
+		Pnl          string `json:"pnl"`
+		Source       string `json:"source"`
+		Category     string `json:"category"`
+		ReduceOnly   string `json:"reduceOnly"`
+		CancelSource string `json:"cancelSource"`
+		AlgoClOrdId  string `json:"algoClOrdId"`
+		AlgoId       string `json:"algoId"`
+		UTime        string `json:"uTime"`
+		CTime        string `json:"cTime"`
+	} `json:"data"`
+}

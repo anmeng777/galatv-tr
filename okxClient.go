@@ -664,7 +664,7 @@ func (c *OKXClient) OkGetKlineFecher(symbol, interval string, startTime, endTime
 	return response.Data, nil
 }
 
-func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, passphrase string, isTestnet int, ticker string) error {
+func (c *OKXClient) ZhuanbiRedemptionAllToAccountBalance(apiKey, secretKey, passphrase string, isTestnet int, ticker string) error {
 	instId, err := convertTvTrickerToSingleCoinName(ticker)
 	if err != nil {
 		fmt.Printf("[Redemption] 转换交易对失败: %v\n", err)
@@ -672,7 +672,7 @@ func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, 
 	}
 
 	var assetBalance float64
-	getAssetBalanceResult, err := client.GetAssetBalance(apiKey, secretKey, passphrase, isTestnet, instId)
+	getAssetBalanceResult, err := c.GetAssetBalance(apiKey, secretKey, passphrase, isTestnet, instId)
 	if err != nil {
 		fmt.Printf("[Redemption] 查询资金账户余额失败: %v\n", err)
 		return err
@@ -685,7 +685,7 @@ func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, 
 		}
 	}
 
-	getSavingsBalanceResult, err := client.GetSavingsBalance(apiKey, secretKey, passphrase, isTestnet, instId)
+	getSavingsBalanceResult, err := c.GetSavingsBalance(apiKey, secretKey, passphrase, isTestnet, instId)
 	if err != nil {
 		fmt.Printf("[Redemption] 查询稳定赚币余额失败: %v\n", err)
 		return err
@@ -707,7 +707,7 @@ func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, 
 		}
 		// 赎回到资金账户
 		fmt.Printf("[Redemption] 开始从稳定赚币赎回...\n")
-		_, errS := client.SavingsPurchaseRedempt(apiKey, secretKey, passphrase, isTestnet, request)
+		_, errS := c.SavingsPurchaseRedempt(apiKey, secretKey, passphrase, isTestnet, request)
 		if errS == nil {
 			// 等待赎回成功，一直查询资金账户直到余额变化
 			fmt.Printf("[Redemption] 等待赎回到账，监控资金账户余额变化...\n")
@@ -716,7 +716,7 @@ func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, 
 				time.Sleep(500 * time.Millisecond) // 等待500毫秒
 
 				// 查询当前资金账户余额
-				currentAssetBalanceResult, err := client.GetAssetBalance(apiKey, secretKey, passphrase, isTestnet, instId)
+				currentAssetBalanceResult, err := c.GetAssetBalance(apiKey, secretKey, passphrase, isTestnet, instId)
 				if err != nil {
 					fmt.Printf("[Redemption] 第%d次查询资金账户余额失败: %v\n", i+1, err)
 					continue
@@ -749,7 +749,7 @@ func ZhuanbiRedemptionAllToAccountBalance(client *OKXClient, apiKey, secretKey, 
 		From: "6",  // 资金账户
 		To:   "18", // 交易账户
 	}
-	_, errT := client.AssetTransfer(apiKey, secretKey, passphrase, isTestnet, transferRequest)
+	_, errT := c.AssetTransfer(apiKey, secretKey, passphrase, isTestnet, transferRequest)
 	if errT != nil {
 		fmt.Printf("[Redemption] 资金划转失败: %v\n", errT)
 		return errT

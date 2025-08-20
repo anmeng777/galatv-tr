@@ -85,8 +85,6 @@ func (c *OKXClient) SendRequest(apiKey, secretKey, passphrase string, isTestnet 
 		return nil, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
 	}
 
-	fmt.Println("API 响应: ", string(body))
-
 	return body, nil
 }
 
@@ -124,8 +122,6 @@ func (c *OKXClient) SendRequestNoAuth(method, endpoint string, params interface{
 	if resp.StatusCode != http.StatusOK {
 		return nil, resp.StatusCode, fmt.Errorf("API 请求失败: %s, 状态码: %d", string(body), resp.StatusCode)
 	}
-
-	fmt.Println("API 响应: ", string(body))
 
 	return body, resp.StatusCode, nil
 }

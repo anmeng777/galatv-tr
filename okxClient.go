@@ -753,3 +753,93 @@ func (c *OKXClient) ZhuanbiRedemptionAllToAccountBalance(apiKey, secretKey, pass
 
 	return nil
 }
+
+// GetOrdersHistoryArchive 获取历史订单记录（近三个月）
+func (c *OKXClient) GetOrdersHistoryArchive(apiKey, secretKey, passphrase string, isTestnet int, request OrdersHistoryArchiveRequest) (*OrdersHistoryArchiveResponse, error) {
+	// 构建查询参数
+	queryParams := ""
+	if request.InstType != "" {
+		queryParams += "instType=" + request.InstType
+	}
+	if request.InstFamily != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "instFamily=" + request.InstFamily
+	}
+	if request.InstId != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "instId=" + request.InstId
+	}
+	if request.OrdType != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "ordType=" + request.OrdType
+	}
+	if request.State != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "state=" + request.State
+	}
+	if request.Category != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "category=" + request.Category
+	}
+	if request.After != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "after=" + request.After
+	}
+	if request.Before != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "before=" + request.Before
+	}
+	if request.Begin != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "begin=" + request.Begin
+	}
+	if request.End != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "end=" + request.End
+	}
+	if request.Limit != "" {
+		if queryParams != "" {
+			queryParams += "&"
+		}
+		queryParams += "limit=" + request.Limit
+	}
+
+	// 构建完整的endpoint
+	endpoint := "/api/v5/trade/orders-history-archive"
+	if queryParams != "" {
+		endpoint += "?" + queryParams
+	}
+
+	// 发送GET请求
+	body, err := c.SendRequest(apiKey, secretKey, passphrase, isTestnet, "GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析响应
+	var response OrdersHistoryArchiveResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}

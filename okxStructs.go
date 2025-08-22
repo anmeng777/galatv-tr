@@ -466,3 +466,97 @@ type OrderInfoResponse struct {
 		CTime        string `json:"cTime"`
 	} `json:"data"`
 }
+
+// 历史订单记录请求参数
+type OrdersHistoryArchiveRequest struct {
+	InstType   string `json:"instType"`             // 产品类型（必填）
+	InstFamily string `json:"instFamily,omitempty"` // 交易品种
+	InstId     string `json:"instId,omitempty"`     // 产品ID
+	OrdType    string `json:"ordType,omitempty"`    // 订单类型
+	State      string `json:"state,omitempty"`      // 订单状态
+	Category   string `json:"category,omitempty"`   // 订单种类
+	After      string `json:"after,omitempty"`      // 请求此ID之前的分页内容
+	Before     string `json:"before,omitempty"`     // 请求此ID之后的分页内容
+	Begin      string `json:"begin,omitempty"`      // 筛选的开始时间戳
+	End        string `json:"end,omitempty"`        // 筛选的结束时间戳
+	Limit      string `json:"limit,omitempty"`      // 返回结果的数量，最大为100
+}
+
+// 历史订单记录数据
+type OrderHistoryData struct {
+	InstType               string `json:"instType"`               // 产品类型
+	InstId                 string `json:"instId"`                 // 产品ID
+	TgtCcy                 string `json:"tgtCcy"`                 // 币币市价单委托数量sz的单位
+	Ccy                    string `json:"ccy"`                    // 保证金币种
+	OrdId                  string `json:"ordId"`                  // 订单ID
+	ClOrdId                string `json:"clOrdId"`                // 客户自定义订单ID
+	Tag                    string `json:"tag"`                    // 订单标签
+	Px                     string `json:"px"`                     // 委托价格
+	PxUsd                  string `json:"pxUsd"`                  // 期权价格，以USD为单位
+	PxVol                  string `json:"pxVol"`                  // 期权订单的隐含波动率
+	PxType                 string `json:"pxType"`                 // 期权的价格类型
+	Sz                     string `json:"sz"`                     // 委托数量
+	OrdType                string `json:"ordType"`                // 订单类型
+	Side                   string `json:"side"`                   // 订单方向
+	PosSide                string `json:"posSide"`                // 持仓方向
+	TdMode                 string `json:"tdMode"`                 // 交易模式
+	AccFillSz              string `json:"accFillSz"`              // 累计成交数量
+	FillPx                 string `json:"fillPx"`                 // 最新成交价格
+	TradeId                string `json:"tradeId"`                // 最新成交ID
+	FillSz                 string `json:"fillSz"`                 // 最新成交数量
+	FillTime               string `json:"fillTime"`               // 最新成交时间
+	AvgPx                  string `json:"avgPx"`                  // 成交均价
+	State                  string `json:"state"`                  // 订单状态
+	Lever                  string `json:"lever"`                  // 杠杆倍数
+	AttachAlgoClOrdId      string `json:"attachAlgoClOrdId"`      // 下单附带止盈止损时，客户自定义的策略订单ID
+	TpTriggerPx            string `json:"tpTriggerPx"`            // 止盈触发价
+	TpTriggerPxType        string `json:"tpTriggerPxType"`        // 止盈触发价类型
+	TpOrdPx                string `json:"tpOrdPx"`                // 止盈委托价
+	SlTriggerPx            string `json:"slTriggerPx"`            // 止损触发价
+	SlTriggerPxType        string `json:"slTriggerPxType"`        // 止损触发价类型
+	SlOrdPx                string `json:"slOrdPx"`                // 止损委托价
+	StpId                  string `json:"stpId"`                  // 自成交保护ID
+	AttachAlgoOrds         []struct {
+		AttachAlgoId           string `json:"attachAlgoId"`           // 附带止盈止损的订单ID
+		AttachAlgoClOrdId      string `json:"attachAlgoClOrdId"`      // 下单附带止盈止损时，客户自定义的策略订单ID
+		TpOrdKind              string `json:"tpOrdKind"`              // 止盈订单类型
+		TpTriggerPx            string `json:"tpTriggerPx"`            // 止盈触发价
+		TpTriggerPxType        string `json:"tpTriggerPxType"`        // 止盈触发价类型
+		TpOrdPx                string `json:"tpOrdPx"`                // 止盈委托价
+		SlTriggerPx            string `json:"slTriggerPx"`            // 止损触发价
+		SlTriggerPxType        string `json:"slTriggerPxType"`        // 止损触发价类型
+		SlOrdPx                string `json:"slOrdPx"`                // 止损委托价
+		Sz                     string `json:"sz"`                     // 张数
+		AmendPxOnTriggerType   string `json:"amendPxOnTriggerType"`   // 是否启用开仓价止损
+		FailCode               string `json:"failCode"`               // 委托失败的错误码
+		FailReason             string `json:"failReason"`             // 委托失败的原因
+	} `json:"attachAlgoOrds"` // 下单附带止盈止损信息
+	LinkedAlgoOrd struct {
+		AlgoId string `json:"algoId"` // 策略订单唯一标识
+	} `json:"linkedAlgoOrd"` // 止损订单信息
+	StpMode                string `json:"stpMode"`                // 自成交保护模式
+	FeeCcy                 string `json:"feeCcy"`                 // 交易手续费币种
+	Fee                    string `json:"fee"`                    // 手续费与返佣
+	RebateCcy              string `json:"rebateCcy"`              // 返佣金币种
+	Rebate                 string `json:"rebate"`                 // 返佣金额
+	Pnl                    string `json:"pnl"`                    // 收益(不包括手续费)
+	Source                 string `json:"source"`                 // 订单来源
+	Category               string `json:"category"`               // 订单种类
+	ReduceOnly             string `json:"reduceOnly"`             // 是否只减仓
+	CancelSource           string `json:"cancelSource"`           // 订单取消来源的原因枚举值代码
+	CancelSourceReason     string `json:"cancelSourceReason"`     // 订单取消来源的对应具体原因
+	AlgoClOrdId            string `json:"algoClOrdId"`            // 客户自定义策略订单ID
+	AlgoId                 string `json:"algoId"`                 // 策略委托单ID
+	IsTpLimit              string `json:"isTpLimit"`              // 是否为限价止盈
+	UTime                  string `json:"uTime"`                  // 订单状态更新时间
+	CTime                  string `json:"cTime"`                  // 订单创建时间
+	QuickMgnType           string `json:"quickMgnType"`           // 一键借币类型
+	TradeQuoteCcy          string `json:"tradeQuoteCcy"`          // 用于交易的计价币种
+}
+
+// 历史订单记录响应
+type OrdersHistoryArchiveResponse struct {
+	Code string              `json:"code"`
+	Msg  string              `json:"msg"`
+	Data []OrderHistoryData `json:"data"`
+}

@@ -100,11 +100,11 @@ func (c *OKXClient) ZhuanbiRedemptionAllToAccountBalance(ticker string) error {
 	return nil
 }
 
-func (c *OKXClient) GalaZhuanbiRedemptionAllToAccountBalance(ticker string, assetBalance, savingBalance float64) error {
+func (c *OKXClient) GalaZhuanbiRedemptionAllToAccountBalance(ticker string, assetBalance, savingBalance float64) (float64, error) {
 	instId, err := ConvertTvTrickerToSingleCoinName(ticker)
 	if err != nil {
 		fmt.Printf("[Redemption] 转换交易对失败: %v\n", err)
-		return err
+		return assetBalance, err
 	}
 
 	if savingBalance > 0 {
@@ -126,7 +126,7 @@ func (c *OKXClient) GalaZhuanbiRedemptionAllToAccountBalance(ticker string, asse
 				// 查询当前资金账户余额
 				currentAssetBalance, assetBalanceErr := c.GalaGetAssetBalance(ticker)
 				if assetBalanceErr != nil {
-					return assetBalanceErr
+					return assetBalance, assetBalanceErr
 				}
 
 				fmt.Printf("[Redemption] 第%d次查询，当前资金账户余额: %.8f，原余额: %.8f\n", i+1, currentAssetBalance, assetBalance)
@@ -150,10 +150,10 @@ func (c *OKXClient) GalaZhuanbiRedemptionAllToAccountBalance(ticker string, asse
 	_, errT := c.AssetTransfer(transferRequest)
 	if errT != nil {
 		fmt.Printf("[Redemption] 资金划转失败: %v\n", errT)
-		return errT
+		return assetBalance, errT
 	}
 
-	return nil
+	return assetBalance, nil
 }
 
 func (c *OKXClient) GalaGetTickerLast(instId string) (float64, error) {

@@ -39,7 +39,7 @@ func zhuanbiFormatFloat(instId string, value float64) float64 {
 	return math.Floor(value*100) / 100
 }
 
-func convertTvTrickerToSingleCoinName(ticker string) (string, error) {
+func ConvertTvTrickerToSingleCoinName(ticker string) (string, error) {
 	// commonQuoteCurrencies 维护一个常见的计价货币列表，用于准确分割交易对。
 	// 注意：将更长的代码放在前面，以避免错误匹配 (例如, 优先匹配 "USDT" 而不是 "USD")。
 	var commonQuoteCurrencies = []string{"USDT", "USDC"}
